@@ -1,3 +1,4 @@
+import os
 import logging
 from datetime import datetime
 
@@ -7,12 +8,20 @@ from aiogram.dispatcher import FSMContext
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-from config import TOKEN
+
+# Загрузка переменных окружения из файла .env
+load_dotenv()
+
+# Получение значения токена из переменной окружения
+token = os.getenv("TOKEN")
+
+bot = Bot(token=token)
 
 logging.basicConfig(level=logging.DEBUG)
 
-bot = Bot(token=TOKEN)
+bot = Bot(token=token)
 storage = MemoryStorage()
 dp = Dispatcher(bot, storage=storage)
 
@@ -48,6 +57,8 @@ async def start(message: types.Message):
 
 @dp.message_handler(content_types=['text'])
 async def func(message: types.Message, state: FSMContext):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+
     if not message.is_command():
         session = Session()
         new_message = Message(user_id=message.from_user.id, username=message.from_user.username,
@@ -60,14 +71,16 @@ async def func(message: types.Message, state: FSMContext):
     elif message.text == "❓ Задать вопрос":
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
         btn1 = types.KeyboardButton("Как меня зовут?")
-        btn2 = types.KeyboardButton("Что я могу?")
+        btn2 = types.KeyboardButton("А что я могу?")
         back = types.KeyboardButton("🏠 Вернуться в главное меню")
         markup.add(btn1, btn2, back)
 
         await message.answer(text="Задай мне вопрос", reply_markup=markup)
     elif message.text == "Как меня зовут?":
-        await message.answer("У меня нет имени..")
-    elif message.text == "Что я могу?":
+        await message.answer(
+            text="Ну что же ты, твое имя {0.first_name}!".format(message.from_user),
+            reply_markup=markup)
+    elif message.text == "А что я могу?":
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
         btn3 = types.KeyboardButton("📚 Посмотреть последние 5 записей")
         back = types.KeyboardButton("🏠 Вернуться в главное меню")
